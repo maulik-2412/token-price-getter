@@ -1,0 +1,8 @@
+name = "coin-exporter"
+compatibility_date = "2024-01-01"
+
+[[d1_databases]]
+
+binding = "DB"
+database_name = "laika-coin-data"
+database_id = "bf2388e3-bcec-4dad-9c0e-9630103057f5"

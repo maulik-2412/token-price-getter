@@ -17,5 +17,18 @@ export const CONFIG={
         chunkDays:parseInt(process.env.CHUNK_DAYS || "90", 10),
         batchInsertSize:parseInt(process.env.BATCH_INSERT_SIZE || "200", 10),
         workerConcurrency:parseInt(process.env.WORKER_CONCURRENCY || "4", 10),
+    },
+    DB :{
+        target:process.env.DB_TARGET
+    },
+    D1:{
+        local:{
+            path:'./local.sqlite'
+        },
+        remote:{
+            accountId:process.env.LOUDFLARE_ACCOUNT_ID,
+            databaseId:process.env.CF_D1_ID,
+            token:process.env.CLOUDFLARE_API_TOKEN
+        }
     }
 }

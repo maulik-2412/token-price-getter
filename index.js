@@ -7,7 +7,7 @@ import fs from "fs";
 
 console.log("🚀 BullMQ worker + scheduler running...");
 
-const TOKENS_FILE = "top-2500-erc20.json";
+const TOKENS_FILE = "ethereum.json";
 const PROGRESS_FILE = "progress.json";
 
 // Batch control
@@ -34,7 +34,7 @@ async function enqueueAllTokens() {
   }
 
   const tokens = JSON.parse(fs.readFileSync(TOKENS_FILE));
-  const total = Math.min(tokens.length, 1000); // cap at 1000 for testing
+  const total = tokens.length 
   console.log(`📄 Loaded ${total} tokens from ${TOKENS_FILE}`);
 
   const doneSet = loadProgress();
@@ -43,16 +43,16 @@ async function enqueueAllTokens() {
   let count = doneSet.size;
 
   for (let i = 0; i < total; i += BATCH_SIZE) {
-    const batch = tokens.slice(i, i + BATCH_SIZE).filter(t => !doneSet.has(t.address));
+    const batch = tokens.slice(i, i + BATCH_SIZE).filter(t => !doneSet.has(t.contract_addresses["ethereum"]));
     if (batch.length === 0) continue;
 
     await Promise.all(
       batch.map(async (t) => {
         try {
-          await enqueueTokenBackfill(t.address);
+          await enqueueTokenBackfill(t);
           count++;
-          doneSet.add(t.address);
-          console.log(`✅ Enqueued ${t.symbol} (${t.address}) [${count}/${total}]`);
+          doneSet.add(t.contract_addresses["ethereum"]);
+          console.log(`✅ Enqueued ${t.symbol} (${t.contract_addresses["ethereum"]}) [${count}/${total}]`);
         } catch (err) {
           console.warn(`❌ Failed to enqueue ${t.symbol}: ${err.message}`);
         }

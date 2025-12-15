@@ -1,0 +1,23 @@
+{
+  "name": "token-price-getter",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "type": "module",
+  "author": "Maulik Tyagi",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "bullmq": "^5.58.5",
+    "dotenv": "^17.2.2",
+    "ethers": "^6.16.0",
+    "express": "^5.1.0",
+    "ioredis": "^5.7.0",
+    "node-fetch": "^3.3.2",
+    "p-limit": "^7.1.1",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7"
+  }
+}

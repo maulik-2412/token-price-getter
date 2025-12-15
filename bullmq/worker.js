@@ -2,9 +2,10 @@
 import { Worker,Queue } from "bullmq";
 /* import pLimit from "p-limit"; */
 import { connection } from "../redis/config.js";
-import { getDailyHistoricalPrices } from "../historical-price-getter.js";
-import { insertRows,clickhouse } from "../clickhouse/config.js";
+import { getDailyHistoricalPrices,getHourlyHistoricalPrices } from "../historical-price-getter.js";
+import { insertRows } from "../db/index.js";
 import { CONFIG } from "../config.js";
+import { logNoData } from "../utils/noDataLogger.js";
 
 const WORKER_CONCURRENCY = CONFIG.PROCESSING.workerConcurrency;
 const BATCH_INSERT_SIZE = CONFIG.PROCESSING.batchInsertSize;
@@ -16,15 +17,17 @@ const worker = new Worker(
   queueName,
   async (job) => {
     const { token, start, end } = job.data;
-    console.log(`Worker picked job: ${token} ${start} → ${end}`);
+    console.log(`Worker picked job: ${token.symbol} (${token.contract_addresses.ethereum}) ${start} → ${end}`);
+
 
     // fetch data in one shot (uniswap.getDailyHistoricalPrices returns array)
     // limit concurrency to avoid bursts if you want, but worker is single job handler
-    const rows = await getDailyHistoricalPrices(token, start, end);
+    const rows = await getHourlyHistoricalPrices(token, start, end);
 
     if (!rows || rows.length === 0) {
       await job.updateProgress(100);
-      console.log(`No rows for ${token} ${start}→${end}`);
+      console.log(`No rows for ${token.symbol} ${start}→${end}`);
+      logNoData({token,start,end});
       return { inserted: 0 };
     }
 
@@ -32,10 +35,13 @@ const worker = new Worker(
     for (let i = 0; i < rows.length; i += BATCH_INSERT_SIZE) {
       
       const batch = rows.slice(i, i + BATCH_INSERT_SIZE).map((r) => ({
-        token: r.token,
-        timestamp: r.timestamp,
+        coin_id:r.token.coin_id,
+        laika_coin_naming:r.token.laika_coin_naming,
+        symbol:r.token.symbol,
+        contract_addresses:JSON.stringify(r.token.contract_addresses),
+        price_datetime:new Date( r.price_datetime * 1000).toISOString(),
         price: r.price,
-        source: r.source,
+        data_source: r.data_source,
       }));
       // Insert and mark partial progress
       await insertRows("token_prices", batch);
@@ -44,7 +50,7 @@ const worker = new Worker(
     }
 
     await job.updateProgress(100);
-    console.log(`Inserted ${rows.length} rows for ${token} ${start}→${end}`);
+    console.log(`Inserted ${rows.length} rows for ${token.symbol} ${start}→${end}`);
     return { inserted: rows.length, token };
   },
   { connection: connection, concurrency: WORKER_CONCURRENCY }
@@ -67,8 +73,6 @@ worker.on("completed", async (job) => {
 
     await worker.close();
     await queue.close();
-    await clickhouse.close();
-
     process.exit(0);
   }
 });
